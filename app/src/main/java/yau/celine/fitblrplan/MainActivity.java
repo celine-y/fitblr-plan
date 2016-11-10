@@ -1,11 +1,14 @@
 package yau.celine.fitblrplan;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.EditText;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -27,7 +30,21 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected (MenuItem item){
         switch (item.getItemId()){
             case R.id.action_add_workout:
-                Log.d(TAG, "Add a new workout");
+//                creates an alertDialog for entering new workout
+                final EditText workoutText = new EditText(this);
+                AlertDialog dialog = new AlertDialog.Builder(this)
+                        .setTitle("Add new workout plan")
+                        .setView(workoutText)
+                        .setPositiveButton("Add", new DialogInterface.OnClickListener(){
+                            @Override
+                            public void onClick (DialogInterface dialog, int which){
+                                String workoutName = String.valueOf(workoutText.getText());
+                                Log.d(TAG, "Task to add: " + workoutName);
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .create();
+                dialog.show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
