@@ -11,8 +11,8 @@ public class WorkoutContract {
     public static final int DB_VERSION = 1;
 
     public class WorkoutEntry implements BaseColumns{
-        public static final String TABLE = "workouts";
-        public static final String COL_WORKOUT_TITLE = "title";
+        public static final String TABLE_NAME = "workouts";
+        public static final String COLUMN_NAME_TITLE = "title";
 
 //        Don't know if I need code bellow
 //        B/c SQL should create unique ID for ea

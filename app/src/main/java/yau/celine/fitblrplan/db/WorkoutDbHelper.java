@@ -19,15 +19,16 @@ public class WorkoutDbHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate (SQLiteDatabase db){
 //        creating the string for the table
-        String createTable = "CREATE TABLE "+ WorkoutContract.WorkoutEntry.TABLE +
-                "(" + WorkoutContract.WorkoutEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                WorkoutContract.WorkoutEntry.COL_WORKOUT_TITLE + " TEXT NOT NULL);";
+        String createTable =
+                "CREATE TABLE "+ WorkoutContract.WorkoutEntry.TABLE_NAME +
+                " (" + WorkoutContract.WorkoutEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                WorkoutContract.WorkoutEntry.COLUMN_NAME_TITLE + " TEXT NOT NULL);";
         db.execSQL(createTable);
     }
 
     @Override
     public void onUpgrade (SQLiteDatabase db, int oldVersion, int newVersion){
-        db.execSQL("DROP TABLE IF EXISTS " + WorkoutContract.WorkoutEntry.TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + WorkoutContract.WorkoutEntry.TABLE_NAME);
         onCreate(db);
     }
 

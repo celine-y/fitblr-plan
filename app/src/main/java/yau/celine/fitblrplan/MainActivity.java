@@ -3,6 +3,7 @@ package yau.celine.fitblrplan;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -13,7 +14,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -29,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private WorkoutDbHelper mHelper;
     private ListView mWorkoutListView;
+    private ArrayList<Long> workoutId;
+    private ArrayList<String> workoutList;
     private ArrayAdapter<String> mAdapter;
 
 
@@ -40,30 +42,21 @@ public class MainActivity extends AppCompatActivity {
         mHelper = new WorkoutDbHelper(this);
         mWorkoutListView = (ListView) findViewById(R.id.list_workout);
         updateUI();
+    }
 
-        //allow clicking
-        mWorkoutListView.setClickable(true);
-        mWorkoutListView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
-
-            @Override
-            public void onItemClick(AdapterView<?> arg0, View arg1,
-                                    int position, long arg3){
-                Log.d(TAG, "OnItemClick");
-                Object oItem = mWorkoutListView.getItemAtPosition(position);
-                Log.d(TAG, "Object: "+String.valueOf(position));
-
-            }
-        });
+    protected void OnListItemClick(ListView l, View v, int position, long id){
+        Log.d(TAG, "onListItemClick");
     }
 
     //updates the main screen with the new workout name
     private void updateUI(){
-        ArrayList<String> workoutList = new ArrayList<>();
+        workoutList = new ArrayList<>();
+        workoutId = new ArrayList<>();
         SQLiteDatabase db = mHelper.getReadableDatabase();
-        Cursor cursor = db.query(WorkoutContract.WorkoutEntry.TABLE,
+        Cursor cursor = db.query(WorkoutContract.WorkoutEntry.TABLE_NAME,
                 new String []{
                         WorkoutContract.WorkoutEntry._ID,
-                        WorkoutContract.WorkoutEntry.COL_WORKOUT_TITLE},
+                        WorkoutContract.WorkoutEntry.COLUMN_NAME_TITLE},
                 null,
                 null,
                 null,
@@ -71,8 +64,11 @@ public class MainActivity extends AppCompatActivity {
                 null
         );
         while (cursor.moveToNext()){
-            int idx = cursor.getColumnIndex(WorkoutContract.WorkoutEntry.COL_WORKOUT_TITLE);
-            workoutList.add(cursor.getString(idx));
+            int title = cursor.getColumnIndex(WorkoutContract.WorkoutEntry.COLUMN_NAME_TITLE);
+            long id = cursor.getLong(cursor.getColumnIndex(WorkoutContract.WorkoutEntry._ID));
+            Log.d(TAG, Long.toString(id));
+            workoutId.add(id);
+            workoutList.add(cursor.getString(title));
         }
 
         if (mAdapter == null){
@@ -80,8 +76,19 @@ public class MainActivity extends AppCompatActivity {
                     R.layout.item_exercise,
                     R.id.workout_title,
                     workoutList
-                    );
+            );
+
             mWorkoutListView.setAdapter(mAdapter);
+//            mWorkoutListView.setOnItemClickListener(new ListView.OnItemClickListener(){
+//                @Override
+//                public void onItemClick(AdapterView<?> parent,
+//                                        View view,
+//                                        int position,
+//                                        long id){
+//                    Intent i = new Intent(MainActivity.this, WorkoutExercises.class);
+//                    startActivity(i);
+//                }
+//            });
         }
         else{
             mAdapter.clear();
@@ -105,6 +112,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected (MenuItem item){
         switch (item.getItemId()){
+            case R.id.exercise_title:
+                Log.d(TAG, "Click on title");
+                return  true;
             case R.id.action_add_workout:
 //                creates an alertDialog for entering new workout
                 final EditText workoutText = new EditText(this);
@@ -114,14 +124,15 @@ public class MainActivity extends AppCompatActivity {
                         .setPositiveButton("Add", new DialogInterface.OnClickListener(){
                             @Override
                             public void onClick (DialogInterface dialog, int which){
+                                Log.d(TAG, "Add Clicked");
                                 String workoutName = String.valueOf(workoutText.getText());
-                                if (!mHelper.isExistingEntry(WorkoutContract.WorkoutEntry.TABLE,
-                                        WorkoutContract.WorkoutEntry.COL_WORKOUT_TITLE,
+                                if (!mHelper.isExistingEntry(WorkoutContract.WorkoutEntry.TABLE_NAME,
+                                        WorkoutContract.WorkoutEntry.COLUMN_NAME_TITLE,
                                         workoutName)) {
                                     SQLiteDatabase db = mHelper.getWritableDatabase();
                                     ContentValues values = new ContentValues();
-                                    values.put(WorkoutContract.WorkoutEntry.COL_WORKOUT_TITLE, workoutName);
-                                    db.insertWithOnConflict(WorkoutContract.WorkoutEntry.TABLE,
+                                    values.put(WorkoutContract.WorkoutEntry.COLUMN_NAME_TITLE, workoutName);
+                                    db.insertWithOnConflict(WorkoutContract.WorkoutEntry.TABLE_NAME,
                                             null,
                                             values,
                                             SQLiteDatabase.CONFLICT_REPLACE);
@@ -153,10 +164,21 @@ public class MainActivity extends AppCompatActivity {
         TextView workoutTextView = (TextView) parent.findViewById(R.id.workout_title);
         String task = String.valueOf(workoutTextView.getText());
         SQLiteDatabase db = mHelper.getWritableDatabase();
-        db.delete(WorkoutContract.WorkoutEntry.TABLE,
-                WorkoutContract.WorkoutEntry.COL_WORKOUT_TITLE + " = ?",
+        db.delete(WorkoutContract.WorkoutEntry.TABLE_NAME,
+                WorkoutContract.WorkoutEntry.COLUMN_NAME_TITLE + " = ?",
                 new String[]{task});
         db.close();
         updateUI();
+    }
+
+    public void openWorkout(View view){
+        Log.d(TAG, "Start openWorkout");
+        final int position = mWorkoutListView.getPositionForView((View) view.getParent());
+        Log.d(TAG, Integer.toString(position));
+
+        Intent i = new Intent(MainActivity.this, WorkoutExercises.class);
+        i.putExtra("WORKOUT_ID", workoutId.get(position));
+        i.putExtra("WORKOUT_TITLE", workoutList.get(position));
+        startActivity(i);
     }
 }
