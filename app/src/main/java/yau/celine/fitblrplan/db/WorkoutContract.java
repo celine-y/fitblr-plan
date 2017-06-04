@@ -12,7 +12,7 @@ public class WorkoutContract {
 
     public class WorkoutEntry implements BaseColumns{
         public static final String TABLE_NAME = "workouts";
-        public static final String COLUMN_NAME_TITLE = "title";
+        public static final String WORKOUT_NAME = "title";
 
 //        Don't know if I need code bellow
 //        B/c SQL should create unique ID for ea

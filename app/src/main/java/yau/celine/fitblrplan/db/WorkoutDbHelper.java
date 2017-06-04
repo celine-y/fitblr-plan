@@ -18,11 +18,11 @@ public class WorkoutDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate (SQLiteDatabase db){
-//        creating the string for the table
+//      string for creating the table
         String createTable =
                 "CREATE TABLE "+ WorkoutContract.WorkoutEntry.TABLE_NAME +
                 " (" + WorkoutContract.WorkoutEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                WorkoutContract.WorkoutEntry.COLUMN_NAME_TITLE + " TEXT NOT NULL);";
+                WorkoutContract.WorkoutEntry.TABLE_NAME + " TEXT NOT NULL);";
         db.execSQL(createTable);
     }
 
