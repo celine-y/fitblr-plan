@@ -1,5 +1,6 @@
 package yau.celine.fitblrplan.db;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -7,6 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import yau.celine.fitblrplan.Movements;
 
@@ -27,7 +29,7 @@ public class ExerciseDbHelper extends SQLiteOpenHelper {
     public void onCreate (SQLiteDatabase db){
 //        creating exercise table
         String createTable =
-                "CREATE TABLE "+ExerciseContract.ExerciseEntry.TABLE_NAME +
+                "CREATE TABLE IF NOT EXISTS "+ExerciseContract.ExerciseEntry.TABLE_NAME +
                         " ("+
                         ExerciseContract.ExerciseEntry._ID +" INTEGER PRIMARY KEY AUTOINCREMENT, "+
                         ExerciseContract.ExerciseEntry.EXERCISE_TITLE+" TEXT NOT NULL, "+
@@ -35,14 +37,14 @@ public class ExerciseDbHelper extends SQLiteOpenHelper {
                         ExerciseContract.ExerciseEntry.LIST_NUM+" INTEGER, "+
                         ExerciseContract.ExerciseEntry.WEEK_NUM+" INTEGER, "+
                         "FOREIGN KEY ("+ ExerciseContract.ExerciseEntry.WORKOUT_ID+") REFERENCES "+
-                        WorkoutContract.WorkoutEntry.TABLE_NAME+" ("+WorkoutContract.WorkoutEntry._ID+")"+
+                        ExerciseContract.WorkoutEntry.TABLE_NAME+" ("+ExerciseContract.WorkoutEntry._ID+")"+
                         ");";
         Log.d(TAG, "strStmt="+createTable);
 
         db.execSQL(createTable);
 //        creating setitions table
         createTable =
-                "CREATE TABLE "+ ExerciseContract.SetitionEntry.TABLE_NAME+
+                "CREATE TABLE IF NOT EXISTS "+ ExerciseContract.SetitionEntry.TABLE_NAME+
                         " ("+
                         ExerciseContract.SetitionEntry._ID+" INTEGER PRIMARY KEY AUTOINCREMENT, "+
                         ExerciseContract.SetitionEntry.EXERCISE_ID +" INTEGER NOT NULL, "+
@@ -54,10 +56,18 @@ public class ExerciseDbHelper extends SQLiteOpenHelper {
                         ");";
         Log.d(TAG, "strStmt="+createTable);
         db.execSQL(createTable);
+
+        createTable =
+                "CREATE TABLE "+ ExerciseContract.WorkoutEntry.TABLE_NAME +
+                        " (" + ExerciseContract.WorkoutEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        ExerciseContract.WorkoutEntry.WORKOUT_NAME + " TEXT NOT NULL);";
+        Log.d(TAG, "strStmt="+createTable);
+        db.execSQL(createTable);
     }
 
 //    insert exercise into table
-    public void insertExercise(String exName, String workoutList, int listNum, int weekNum){
+//    TODO: have it so that inserting the exercises also inserts the reps/sets
+    public int insertExercise(String exName, int workoutListId, int listNum, int weekNum){
         SQLiteDatabase db = this.getReadableDatabase();
 
         String insertExercise =
@@ -67,24 +77,65 @@ public class ExerciseDbHelper extends SQLiteOpenHelper {
                         ExerciseContract.ExerciseEntry.LIST_NUM+", "+
                         ExerciseContract.ExerciseEntry.WEEK_NUM+
                         ") VALUES ( "+
-                        exName+", "+
-                        "(SELECT "+ WorkoutContract.WorkoutEntry._ID+" FROM "+
-                        WorkoutContract.WorkoutEntry.TABLE_NAME+" WHERE "+
-                        WorkoutContract.WorkoutEntry.WORKOUT_NAME+" = '"+workoutList+"'), "+
+                        "'"+exName+"', "+
+                        "(SELECT "+ ExerciseContract.WorkoutEntry._ID+" FROM "+
+                        ExerciseContract.WorkoutEntry.TABLE_NAME+" WHERE "+
+                        ExerciseContract.WorkoutEntry._ID+" = "+workoutListId+"), "+
                         listNum+", "+
-                        weekNum+", "+
+                        weekNum+
                         ");";
 
-        db.execSQL(insertExercise);
+        ContentValues values = new ContentValues();
+
+        values.put(ExerciseContract.ExerciseEntry.EXERCISE_TITLE, exName);
+        values.put(ExerciseContract.ExerciseEntry.WORKOUT_ID, workoutListId);
+        values.put(ExerciseContract.ExerciseEntry.LIST_NUM, listNum);
+        values.put(ExerciseContract.ExerciseEntry.WEEK_NUM, weekNum);
+
+        Long i = db.insert(ExerciseContract.ExerciseEntry.TABLE_NAME, null, values);
+
+        Log.d(TAG, "Returned ID="+i.toString());
+
+        return i.intValue();
+
+//        int returnId;
+//        db.execSQL(insertExercise);
     }
+//    TODO: update exercise
+
+//    TODO: insert sets and reps into table
+    public void insertSetsReps (int exId, int weekNum, int setNum, int repNum){
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String insertSetsReps =
+                "INSERT INTO "+ExerciseContract.SetitionEntry.TABLE_NAME+
+                        "("+ ExerciseContract.SetitionEntry.EXERCISE_ID+", "+
+                        ExerciseContract.SetitionEntry.WEEK_NUM+", "+
+                        ExerciseContract.SetitionEntry.SETS+", "+
+                        ExerciseContract.SetitionEntry.REPS+
+                        ") VALUES ( "+
+                        "(SELECT "+ ExerciseContract.ExerciseEntry._ID+" FROM "+
+                        ExerciseContract.ExerciseEntry.TABLE_NAME+" WHERE "+
+                        ExerciseContract.ExerciseEntry._ID+" = "+exId+"), "+
+                        weekNum+", "+
+                        setNum+", "+
+                        repNum+
+                        ");";
+        Log.d(TAG, "strStmt="+insertSetsReps);
+        db.execSQL(insertSetsReps);
+    }
+
+//    TODO: update sets and reps
 
     @Override
     public void onUpgrade (SQLiteDatabase db, int oldVersion, int newVersion){
         db.execSQL("DROP TABLE IF EXISTS "+ExerciseContract.ExerciseEntry.TABLE_NAME);
         db.execSQL("DROP TABLE IF EXISTS "+ ExerciseContract.SetitionEntry.TABLE_NAME);
+        db.execSQL("DROP TABLE IF EXISTS " + ExerciseContract.WorkoutEntry.TABLE_NAME);
         onCreate(db);
     }
 
+//    Get the exercises (w/sets and reps) in arraylist
     public ArrayList<Movements> getAllDatas(int workoutId, int weekNum){
         ArrayList<Movements> moveList = new ArrayList<Movements>();
 
@@ -94,6 +145,7 @@ public class ExerciseDbHelper extends SQLiteOpenHelper {
                 +" ON E."+ ExerciseContract.ExerciseEntry._ID+" = S."+ ExerciseContract.SetitionEntry.EXERCISE_ID+
                 " WHERE "+ ExerciseContract.ExerciseEntry.WORKOUT_ID+" = "+workoutId +
                 " AND S." + ExerciseContract.SetitionEntry.WEEK_NUM+"="+weekNum+
+                " ORDER BY "+ ExerciseContract.ExerciseEntry.LIST_NUM+
                 ";";
 
         Log.d(TAG, "strStmt=/"+selectStmt+"/");
@@ -116,5 +168,66 @@ public class ExerciseDbHelper extends SQLiteOpenHelper {
         }
         Log.d(TAG, moveList.toString());
         return  moveList;
+    }
+
+//    Check if workout name is already used
+    public boolean isExistingEntry(String TableName,
+                                   String dbfield, String fieldValue) {
+        SQLiteDatabase sqldb = getWritableDatabase();
+        String Query = "SELECT * FROM " + TableName + " WHERE " + dbfield + " = '" + fieldValue+"'";
+        Cursor cursor = sqldb.rawQuery(Query, null);
+        if(cursor.getCount() <= 0){
+            cursor.close();
+            return false;
+        }
+        cursor.close();
+        return true;
+    }
+
+//    insert the workout name
+    public void insertWorkout (String workoutName){
+        SQLiteDatabase db = getReadableDatabase();
+
+        String insertWorkout =
+                "INSERT INTO "+ ExerciseContract.WorkoutEntry.TABLE_NAME +
+                        "("+ ExerciseContract.WorkoutEntry.WORKOUT_NAME+
+                        ") VALUES ("+
+                        "'"+workoutName+"');";
+
+        Log.d(TAG, "strStmt="+insertWorkout);
+
+        db.execSQL(insertWorkout);
+    }
+
+//    Array list for the weeks in spinner
+    public List<String> getSpinnerWeeks (int workoutId){
+        List<String> titles = new ArrayList<String>();
+
+        SQLiteDatabase db = getWritableDatabase();
+
+        String sqlMaxWeek = "SELECT MAX("+ ExerciseContract.ExerciseEntry.WEEK_NUM+") AS Weeknum " +
+                "FROM "+ ExerciseContract.ExerciseEntry.TABLE_NAME+" "+
+                "WHERE "+ ExerciseContract.ExerciseEntry.WORKOUT_ID+" = "+workoutId+
+                ";";
+
+        Cursor cursor = db.rawQuery(sqlMaxWeek, null);
+        cursor.moveToFirst();
+//        retrieve the max weekNum
+        String maxWeek = cursor.getString(cursor.getColumnIndex("Weeknum"));
+
+        if (maxWeek != null) {
+            int i;
+            for (i = 0; i <= Integer.parseInt(maxWeek); i++) {
+                String weekTitle = "Week " + Integer.toString(i + 1);
+                titles.add(i, weekTitle);
+            }
+//      Add the last title
+            titles.add(i, "Start new week");
+        }
+        else{
+            titles.add(0, "Start new week");
+        }
+
+        return titles;
     }
 }

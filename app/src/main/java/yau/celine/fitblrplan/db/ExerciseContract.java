@@ -7,8 +7,13 @@ import android.provider.BaseColumns;
  */
 
 public class ExerciseContract {
-    public static  final String DB_NAME = "fitblrplan.exerciselist.db";
-    public static final int DB_VERSION = 2;
+    public static  final String DB_NAME = "fitblrplan.db";
+    public static final int DB_VERSION = 7;
+
+    public class WorkoutEntry implements BaseColumns {
+        public static final String TABLE_NAME = "workouts";
+        public static final String WORKOUT_NAME = "title";
+    }
 
     public class ExerciseEntry implements BaseColumns{
         public  static final String TABLE_NAME = "exercises";

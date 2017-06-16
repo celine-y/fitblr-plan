@@ -1,15 +1,20 @@
 package yau.celine.fitblrplan;
 
 import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Spinner;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import yau.celine.fitblrplan.db.ExerciseDbHelper;
 
@@ -18,11 +23,12 @@ import yau.celine.fitblrplan.db.ExerciseDbHelper;
  * Created by Celine on 2017-05-03.
  */
 
-public class WorkoutExercises extends AppCompatActivity {
+public class WorkoutExercises extends AppCompatActivity
+        implements ExerciseDialogue.NoticeDialogListener {
     private static final String TAG = "WorkoutExercises";
     private Menu exerciseMenu;
     private Integer WORKOUT_ID;
-    private String WORKOUTLIST_NAME;
+    private Integer CURR_WEEK;
     private ExerciseDbHelper exDbHelper;
     private ListView exListView;
     private MyAdapter adapter;
@@ -31,6 +37,7 @@ public class WorkoutExercises extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.workout_exercises);
+//        show menu
 
 //        get the id of the workoutlist
         WORKOUT_ID = getIntent().getIntExtra("WORKOUT_ID", 0);
@@ -39,6 +46,9 @@ public class WorkoutExercises extends AppCompatActivity {
 //      Initiate ExerciseDbHelper
         exDbHelper = new ExerciseDbHelper(this);
 
+        updateSpinner();
+//        Set current week as week 1
+        CURR_WEEK = 0;
 
         // Get listView from workout_exercises.xml
         exListView = (ListView) findViewById(R.id.list_exercise);
@@ -60,49 +70,33 @@ public class WorkoutExercises extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected (MenuItem item){
         switch (item.getItemId()){
+//            Adding an exercise
             case R.id.action_add_item:
-//             adding an exercise
 //               Popup box
                 FragmentManager fm = getSupportFragmentManager();
-                ExerciseDialogue inputNew = new ExerciseDialogue();
+                ExerciseDialogue inputNew = ExerciseDialogue.newInstance(WORKOUT_ID, CURR_WEEK);
                 inputNew.show(fm, "popup_exercise");
-//                End popup box
-//                final EditText excersizeText = new EditText(this);
-//                AlertDialog dialog = new AlertDialog.Builder(this)
-//                        .setTitle("Add new exercise")
-//                        .setView(excersizeText)
-//                        .setPositiveButton("Add", new DialogInterface.OnClickListener() {
-//                            @Override
-//                            public void onClick(DialogInterface dialog, int which) {
-//                                Log.d(TAG, "Add Clicked");
-//                                String excersizeName = String.valueOf(excersizeText.getText());
-////                                TODO: insert proper week# (last value)
-////                                TODO: update proper listNum
-//                                exDbHelper.insertExercise(excersizeName, WORKOUTLIST_NAME, 0, 0);
-//                                updateUI();
-//                            }
-//                        })
-//                        .setNegativeButton("Cancel", null)
-//                        .create();
-//                dialog.show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog) {
+        // User touched the dialog's positive button
+        updateUI();
+    }
+
+    @Override
+    public void onDialogNegativeClick(DialogFragment dialog) {
+        // User touched the dialog's negative button
+    }
+
     private void updateUI(){
-
-        // 1. pass context and data to the custom adapter
-        Movements testMove = new Movements("Ex#1", 0, 0, 3,10);
-        ArrayList<Movements> testArry = new ArrayList<Movements>();
-        testArry.add(testMove);
-        adapter = new MyAdapter(this, testArry);
-
-
-//        TODO: change to proper week#
-//        adapter = new MyAdapter(this, exDbHelper.getAllDatas(WORKOUT_ID, 1));
-        Log.d(TAG, "adapter="+adapter.toString());
+        Log.d(TAG, "updateUI");
+        // pass context and data to the custom adapter
+        adapter = new MyAdapter(this, exDbHelper.getAllDatas(WORKOUT_ID, CURR_WEEK));
 
         if (adapter == null) {
             Log.d(TAG, "adapter  is null");
@@ -110,9 +104,42 @@ public class WorkoutExercises extends AppCompatActivity {
         }
         else{
             Log.d(TAG, "Adapter is not null");
-            // 3. setListAdapter
+            // setListAdapter
             exListView.setAdapter(adapter);
         }
 
+    }
+
+    private  void updateSpinner(){
+
+//        Set the week dropdown
+        final Spinner weekSpinner = (Spinner) findViewById(R.id.weeks_spinner);
+        List<String> spinTitle = exDbHelper.getSpinnerWeeks(WORKOUT_ID);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, spinTitle);
+
+
+        weekSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+
+//                check if the last item on weeks is clicked (aka add new week)
+//                if (position == weekSpinner.getCount()){
+//
+//                }
+                CURR_WEEK = position;
+                Log.d(TAG, "CURR_WEEK="+CURR_WEEK);
+                updateUI();
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        // attaching data adapter to spinner
+        weekSpinner.setAdapter(adapter);
     }
 }
